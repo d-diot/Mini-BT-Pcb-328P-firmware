@@ -1,11 +1,10 @@
 // Debug configuration
-
-#define MY_DEBUG
+//#define MY_DEBUG
 #define F_DEBUG
 //#define MY_DEBUG_VERBOSE_SIGNING
 
-// Batteries configuration
 
+// Batteries configuration
 // AAA batteries = 1, CR2032 = 2
 #define BATTERY_TYPE 2
 #define ENABLE_BATTERY_MONITOR
@@ -23,20 +22,28 @@ const float CUSTOM_V_MIN = 1.8;
 const float CUSTOM_V_MAX = 3.3;
 // Milliseconds to wait after radio module activity (necessary only with CR2032 batteries)
 #define CR2032_RADIO_WAIT_TIME 400
+// Define the number of reads when the MCU is powered through the booster and battery voltage is determined by analog reads
+#ifdef BATTERY_V_MEASURE_PIN
+#define MEAN_V_BATT_READS 3
+#endif
+
+
+// Ext power monitor
+#ifdef EXT_PWR_SENSE_PIN 
+#define ENABLE_EXT_PWR_MONITOR
+#endif
+
 
 // Power LED parameters
-
 #ifdef PWR_LED_PIN
-// Brightness level: 0 - 255. Auto = -1. Any number different from: -1, 0 - 255 = LED OFF
-const int LOW_BATTERY_LED_BRIGHTNESS = -1;
 // Battery percentage threshold to activate the LED
 #define LOW_BATTERY_THRESHOLD 25
 // Blink time (ms)
 #define LOW_BATTERY_BLINK_TIME 300
 #endif
 
-// Booster configuration
 
+// Booster configuration
 #ifdef BOOSTER_PIN
 #define ENABLE_BOOSTER_MONITOR
 // booster policy: ALWAYS OFF = 0, ALWAYS ON = 1, AUTO = 2
@@ -45,29 +52,24 @@ const int LOW_BATTERY_LED_BRIGHTNESS = -1;
 const float BoostThreshold = 2.7;
 #endif
 
-// Ext power monitor
-
-#define ENABLE_EXT_PWR_MONITOR
-#ifdef PWR_LED_PIN
-// Brightness level: 0 - 255. Auto = -1. Any number different from: -1 or 0 - 255 = LED OFF
-const int EXT_POWER_LED_BRIGHTNESS = -1;
-#endif
 
 // Vcc read configuration
-
 #define ENABLE_VCC_MONITOR
 #define MEAN_VCC_READS 3
 // Measured Vcc by multimeter divided by reported Vcc
 const float VccCorrection = 1.0 / 1.0;
 const float VccTol = 0.05;
 
-// Heartbeat
 
-#define ENABLE_HEARTBEAT
-
-
-// Power pin parameters
-
-#ifdef POWER_PIN
-#define POWER_PIN_WAIT_TIME 300
+// Reed switch configuration
+#ifdef REED_SW_PIN
+// debounce interval (ms)
+#define DEBOUNCE_INTERVAL 5
+// sleep time interval (ms): 0 = sleep forever until status change
+#define REED_SW_SLEEP_INTERVAL 0
+#define CYCLE_BEFORE_SLEEP 5
 #endif
+
+
+// Heartbeat
+#define ENABLE_HEARTBEAT
