@@ -25,6 +25,8 @@ const float CUSTOM_V_MAX = 3.3;
 // Define the number of reads when the MCU is powered through the booster and battery voltage is determined by analog reads
 #ifdef BATTERY_V_MEASURE_PIN
 #define MEAN_V_BATT_READS 3
+// Measured Vcc by multimeter divided by reported Vcc
+const float V_BATT_CORRECTION = 1.0 / 1.0;
 #endif
 
 

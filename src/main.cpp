@@ -437,7 +437,7 @@ void loop()
       batt_percent_value = (uint8_t)round(vcc.Read_Perc(CR2032_V_MIN, CR2032_V_MAX));
       #endif
       #ifdef BATTERY_V_MEASURE_PIN
-      float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage;
+      float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
       #ifdef F_DEBUG
       Serial.print("Battery voltage measure: ");
       Serial.println(batt_voltage_measure);
@@ -457,7 +457,7 @@ void loop()
           batt_percent_value = (uint8_t)round(vcc.Read_Perc(ALK_V_MIN, ALK_V_MAX));
           #endif
           #ifdef BATTERY_V_MEASURE_PIN
-          float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage;
+          float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
           #ifdef F_DEBUG
           Serial.print("Battery voltage measure: ");
           Serial.println(batt_voltage_measure);
@@ -471,7 +471,7 @@ void loop()
           batt_percent_value = (uint8_t)round(vcc.Read_Perc(NIMH_V_MIN, NIMH_V_MAX));
           #endif
           #ifdef BATTERY_V_MEASURE_PIN
-          float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage;
+          float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
           #ifdef F_DEBUG
           Serial.print("Battery voltage measure: ");
           Serial.println(batt_voltage_measure);
@@ -487,7 +487,7 @@ void loop()
         batt_percent_value = (uint8_t)round(vcc.Read_Perc(CUSTOM_V_MIN, CUSTOM_V_MAX));
         #endif
         #ifdef BATTERY_V_MEASURE_PIN
-        float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage;
+        float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
         #ifdef F_DEBUG
         Serial.print("Battery voltage measure: ");
         Serial.println(batt_voltage_measure);
@@ -502,7 +502,7 @@ void loop()
         batt_percent_value = (uint8_t)round(vcc.Read_Perc(NIMH_V_MIN, NIMH_V_MAX));
         #endif
         #ifdef BATTERY_V_MEASURE_PIN
-        float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage;
+        float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
         #ifdef F_DEBUG
         Serial.print("Battery voltage measure: ");
         Serial.println(batt_voltage_measure);
@@ -517,7 +517,7 @@ void loop()
         batt_percent_value = (uint8_t)round(vcc.Read_Perc(ALK_V_MIN, ALK_V_MAX));
         #endif
         #ifdef BATTERY_V_MEASURE_PIN
-        float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage;
+        float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
         #ifdef F_DEBUG
         Serial.print("Battery voltage measure: ");
         Serial.println(batt_voltage_measure);
