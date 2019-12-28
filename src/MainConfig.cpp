@@ -1,6 +1,6 @@
 // Debug configuration
 //#define MY_DEBUG
-#define F_DEBUG
+//#define F_DEBUG
 //#define MY_DEBUG_VERBOSE_SIGNING
 
 
@@ -22,7 +22,7 @@ const float CUSTOM_V_MIN = 1.8;
 const float CUSTOM_V_MAX = 3.3;
 // Milliseconds to wait after radio module activity (necessary only with CR2032 batteries)
 #define CR2032_RADIO_WAIT_TIME 400
-// Define the number of reads when the MCU is powered through the booster and battery voltage is determined by analog reads
+// Define the number of battery voltage reads when the MCU is powered through the booster and battery voltage is determined by analog reads
 #ifdef BATTERY_V_MEASURE_PIN
 #define MEAN_V_BATT_READS 3
 // Measured Vcc by multimeter divided by reported Vcc
@@ -67,9 +67,9 @@ const float VccTol = 0.05;
 #ifdef REED_SW_PIN
 // debounce interval (ms)
 #define DEBOUNCE_INTERVAL 5
-// sleep time interval (ms): 0 = sleep forever until status change
+// sleep time interval (ms): 0 = sleep forever until status change (interrupt on pin REED_SW_PIN)
 #define REED_SW_SLEEP_INTERVAL 0
-#define CYCLE_BEFORE_SLEEP 5
+#define CYCLE_BEFORE_SLEEP 10
 #endif
 
 
