@@ -17,7 +17,7 @@ const char sketch_version[] = "1.0";
 #include <MainConfig.cpp>
 
 // MySensors configuration
-#include <MySConfig.cpp>
+#include <MySconfig.cpp>
 
 // Sampling interval configuration
 #ifdef F_DEBUG
