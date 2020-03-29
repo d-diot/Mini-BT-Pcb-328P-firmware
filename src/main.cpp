@@ -21,7 +21,7 @@ const char sketch_version[] = "1.0";
 
 // Sampling interval configuration
 #ifdef F_DEBUG
-static const uint32_t UPDATE_INTERVAL = 60000;
+static const uint32_t UPDATE_INTERVAL = 3000;
 #endif
 #ifndef F_DEBUG
 static const uint32_t UPDATE_INTERVAL = 900000;
@@ -42,7 +42,7 @@ static const uint8_t FORCE_UPDATE_N_READS = 10;
 // Object initialization
 Vcc vcc(VccCorrection);
 #ifdef REED_SW_PIN
-Bounce debouncer = Bounce(); 
+Bounce debouncer = Bounce();
 #endif
 
 // CHILD_ID
@@ -58,7 +58,9 @@ Bounce debouncer = Bounce();
 #ifdef REED_SW_PIN
 #define CHILD_ID_REED_SW 4
 #endif
-
+#ifdef SOIL_MOISTURE_PIN
+#define CHILD_ID_SOIL_HUM 6
+#endif
 
 // Messages
 #ifdef CHILD_ID_VCC_VOLTAGE
@@ -72,6 +74,9 @@ MyMessage msgBooster(CHILD_ID_BOOSTER, V_TRIPPED);
 #endif
 #ifdef CHILD_ID_REED_SW
 MyMessage msgReedSW(CHILD_ID_REED_SW, V_TRIPPED);
+#endif
+#ifdef SOIL_MOISTURE_PIN
+MyMessage msgSoilHum(CHILD_ID_SOIL_HUM, V_HUM);
 #endif
 
 // First run
@@ -121,10 +126,17 @@ uint8_t nNoUpdatesReedSW = 0;
 uint8_t cycle_counter = 0;
 #endif
 
+// Soil Moisture Sensor
+#ifdef CHILD_ID_SOIL_HUM
+uint16_t soil_analog_read = 0;
+uint16_t soil_analog_last_read = 0;
+uint16_t nNoUpdatesSoilMoisture = 0;
+
+#endif
+
 // ********************************* END OF INIT **********************************
 
 // ****************************** CUSTOM FUNCTIONS ********************************
-
 
 // Wait before radio message (for CR2032 batteries)
 void cr2032_wait()
@@ -183,7 +195,7 @@ int analog_smooth(int PIN, int reads)
   return smoothed;
 }
 
-// map function for floating values 
+// map function for floating values
 float mapf(float x, float in_min, float in_max, float out_min, float out_max)
 {
   if (x < in_min)
@@ -226,6 +238,10 @@ void presentation()
   present(CHILD_ID_REED_SW, S_DOOR, "Reed Switch", ack);
   cr2032_wait();
 #endif
+#ifdef CHILD_ID_SOIL_HUM
+  present(CHILD_ID_SOIL_HUM, S_HUM, "Soil Moisture", ack);
+  cr2032_wait();
+#endif
 }
 
 // ******************** END OF MYSESNSORS PRESENTANTION FUNCTION ************************/
@@ -234,6 +250,11 @@ void presentation()
 
 void setup()
 {
+#ifdef POWER_PIN
+  pinMode(POWER_PIN, OUTPUT);
+  digitalWrite(POWER_PIN, HIGH);
+  wait(POWER_PIN_WAIT_TIME);
+#endif
 #ifdef EXT_PWR_SENSE_PIN
   pinMode(EXT_PWR_SENSE_PIN, INPUT);
 #endif
@@ -246,9 +267,12 @@ void setup()
   digitalWrite(PWR_LED_PIN, LOW);
 #endif
 #ifdef REED_SW_PIN
-  pinMode(REED_SW_PIN,INPUT_PULLUP);
+  pinMode(REED_SW_PIN, INPUT_PULLUP);
   debouncer.attach(REED_SW_PIN);
   debouncer.interval(DEBOUNCE_INTERVAL);
+#endif
+#ifdef SOIL_MOISTURE_PIN
+  pinMode(SOIL_MOISTURE_PIN, INPUT);
 #endif
 #ifdef DISABLE_ERR_LED
   pinMode(DISABLE_ERR_LED, INPUT_PULLUP);
@@ -295,41 +319,55 @@ void loop()
 #ifdef ENABLE_BATTERY_MONITOR
     nNoUpdatesBattPercent = 0;
 #endif
+#ifdef CHILD_ID_SOIL_HUM
+    nNoUpdatesSoilMoisture = 0;
+#endif
   }
 #endif
- 
- #ifdef F_DEBUG
+
+  // Turn ON power PIN
+#ifdef POWER_PIN
+  if (first_run || wake_up_mode != -3)
+  {
+    digitalWrite(POWER_PIN, HIGH);
+    wdt_reset();
+    wait(POWER_PIN_WAIT_TIME);
+    wdt_reset();
+  }
+#endif
+
+#ifdef F_DEBUG
   Serial.print("Wake up mode:");
   Serial.println(wake_up_mode);
 #endif
 
 // Send heartbeat only after sleep
 #ifdef ENABLE_HEARTBEAT
-  #ifndef CHILD_ID_REED_SW
+#ifndef CHILD_ID_REED_SW
   if (wake_up_mode != -3)
   {
     sendHeartbeat();
     cr2032_wait();
-    #ifdef F_DEBUG
+#ifdef F_DEBUG
     Serial.println("Sending heartbeat");
-    #endif
+#endif
   }
-  #endif
-  #ifdef CHILD_ID_REED_SW
+#endif
+#ifdef CHILD_ID_REED_SW
   if (wake_up_mode != -3 && cycle_counter == 0)
   {
     sendHeartbeat();
     cr2032_wait();
-    #ifdef F_DEBUG
+#ifdef F_DEBUG
     Serial.println("Sending heartbeat");
-    #endif
+#endif
   }
-  #endif
+#endif
 #endif
 
 // Read the reed switch:
 #ifdef CHILD_ID_REED_SW
-  // Read the switch status. OPEN = HIGH, CLOSE = LOW 
+  // Read the switch status. OPEN = HIGH, CLOSE = LOW
   reed_sw_status = debouncer.read() ? true : false;
   if (reed_sw_status != last_reed_sw_status || first_run || nNoUpdatesReedSW == FORCE_UPDATE_N_READS)
   {
@@ -348,7 +386,7 @@ void loop()
   }
 #endif
 
-// Read Vcc
+  // Read Vcc
   update_Vcc_level();
 
 // Activate Booster if necessary
@@ -385,8 +423,32 @@ void loop()
   }
 #endif
 
+// Soil Moisture Sensor
+#ifdef CHILD_ID_SOIL_HUM
+  soil_analog_read = analog_smooth(SOIL_MOISTURE_PIN, SOIL_ANALOG_READS);
+#ifdef F_DEBUG
+  Serial.print("Soil moisture analog read:");
+  Serial.println(soil_analog_read);
+#endif
+  if (first_run || soil_analog_read <= soil_analog_last_read - SOIL_ANALOG_TOLLERANCE || soil_analog_read >= soil_analog_last_read + SOIL_ANALOG_TOLLERANCE || nNoUpdatesSoilMoisture == FORCE_UPDATE_N_READS)
+  {
+    nNoUpdatesSoilMoisture = 0;
+    soil_analog_last_read = soil_analog_read;
+    send(msgSoilHum.set(int(100 - map(constrain(soil_analog_last_read, WET_ANALOG_VALUE, DRY_ANALOG_VALUE), WET_ANALOG_VALUE, DRY_ANALOG_VALUE, 0, 100))), ack);
+    cr2032_wait();
+#ifdef F_DEBUG
+    Serial.print("Soil moisture:");
+    Serial.println(int(100 - map(constrain(soil_analog_last_read, WET_ANALOG_VALUE, DRY_ANALOG_VALUE), WET_ANALOG_VALUE, DRY_ANALOG_VALUE, 0, 100)));
+#endif
+  }
+  else
+  {
+    nNoUpdatesSoilMoisture++;
+  }
+#endif
+
 // Detect external power presence. Logic is reversed: HIGH = no external power, LOW = external_power
-#ifdef EXT_PWR_SENSE_PIN 
+#ifdef EXT_PWR_SENSE_PIN
   ext_power = digitalRead(EXT_PWR_SENSE_PIN) ? false : true;
   if (first_run || ext_power != last_ext_power || nNoUpdatesExtPwr == FORCE_UPDATE_N_READS)
   {
@@ -410,10 +472,10 @@ void loop()
     {
       digitalWrite(PWR_LED_PIN, LOW);
     }
-    #ifdef F_DEBUG
+#ifdef F_DEBUG
     Serial.print("Power LED status (ext power):");
     Serial.println(digitalRead(PWR_LED_PIN));
-    #endif
+#endif
 #endif
   }
   else
@@ -421,7 +483,7 @@ void loop()
     nNoUpdatesExtPwr++;
   }
 #endif
-  
+
 // Read battery level
 #ifdef ENABLE_BATTERY_MONITOR
   if (ext_power)
@@ -433,17 +495,17 @@ void loop()
     // CR2032: V min = 2.4, V max = 3.0
     if (BATTERY_TYPE == 2)
     {
-      #ifndef BATTERY_V_MEASURE_PIN
+#ifndef BATTERY_V_MEASURE_PIN
       batt_percent_value = (uint8_t)round(vcc.Read_Perc(CR2032_V_MIN, CR2032_V_MAX));
-      #endif
-      #ifdef BATTERY_V_MEASURE_PIN
+#endif
+#ifdef BATTERY_V_MEASURE_PIN
       float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
-      #ifdef F_DEBUG
+#ifdef F_DEBUG
       Serial.print("Battery voltage measure: ");
       Serial.println(batt_voltage_measure);
-      #endif
+#endif
       batt_percent_value = (uint8_t)round(mapf(batt_voltage_measure, CR2032_V_MIN, CR2032_V_MAX, 0.0, 100.0));
-      #endif
+#endif
     }
     // AAA bateries
     else if (BATTERY_TYPE == 1)
@@ -453,77 +515,77 @@ void loop()
       {
         if (initial_vcc_voltage > NIMH_VMAX_THRESHOLD)
         {
-          #ifndef BATTERY_V_MEASURE_PIN
+#ifndef BATTERY_V_MEASURE_PIN
           batt_percent_value = (uint8_t)round(vcc.Read_Perc(ALK_V_MIN, ALK_V_MAX));
-          #endif
-          #ifdef BATTERY_V_MEASURE_PIN
+#endif
+#ifdef BATTERY_V_MEASURE_PIN
           float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
-          #ifdef F_DEBUG
+#ifdef F_DEBUG
           Serial.print("Battery voltage measure: ");
           Serial.println(batt_voltage_measure);
-          #endif
+#endif
           batt_percent_value = (uint8_t)round(mapf(batt_voltage_measure, ALK_V_MIN, ALK_V_MAX, 0.0, 100.0));
-          #endif
+#endif
         }
         else
         {
-          #ifndef BATTERY_V_MEASURE_PIN
+#ifndef BATTERY_V_MEASURE_PIN
           batt_percent_value = (uint8_t)round(vcc.Read_Perc(NIMH_V_MIN, NIMH_V_MAX));
-          #endif
-          #ifdef BATTERY_V_MEASURE_PIN
+#endif
+#ifdef BATTERY_V_MEASURE_PIN
           float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
-          #ifdef F_DEBUG
+#ifdef F_DEBUG
           Serial.print("Battery voltage measure: ");
           Serial.println(batt_voltage_measure);
-          #endif
+#endif
           batt_percent_value = (uint8_t)round(mapf(batt_voltage_measure, NIMH_V_MIN, NIMH_V_MAX, 0.0, 100.0));
-          #endif
+#endif
         }
       }
       // Custom V min and V max
       else if (AAA_BATT_CHEMISTRY == 1)
       {
-        #ifndef BATTERY_V_MEASURE_PIN
+#ifndef BATTERY_V_MEASURE_PIN
         batt_percent_value = (uint8_t)round(vcc.Read_Perc(CUSTOM_V_MIN, CUSTOM_V_MAX));
-        #endif
-        #ifdef BATTERY_V_MEASURE_PIN
+#endif
+#ifdef BATTERY_V_MEASURE_PIN
         float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
-        #ifdef F_DEBUG
+#ifdef F_DEBUG
         Serial.print("Battery voltage measure: ");
         Serial.println(batt_voltage_measure);
-        #endif
+#endif
         batt_percent_value = (uint8_t)round(mapf(batt_voltage_measure, CUSTOM_V_MIN, CUSTOM_V_MAX, 0.0, 100.0));
-        #endif
+#endif
       }
       // NiMH batteries (rechargeable)
       else if (AAA_BATT_CHEMISTRY == 2)
       {
-        #ifndef BATTERY_V_MEASURE_PIN
+#ifndef BATTERY_V_MEASURE_PIN
         batt_percent_value = (uint8_t)round(vcc.Read_Perc(NIMH_V_MIN, NIMH_V_MAX));
-        #endif
-        #ifdef BATTERY_V_MEASURE_PIN
+#endif
+#ifdef BATTERY_V_MEASURE_PIN
         float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
-        #ifdef F_DEBUG
+#ifdef F_DEBUG
         Serial.print("Battery voltage measure: ");
         Serial.println(batt_voltage_measure);
-        #endif
+#endif
         batt_percent_value = (uint8_t)round(mapf(batt_voltage_measure, NIMH_V_MIN, NIMH_V_MAX, 0.0, 100.0));
-        #endif
+#endif
       }
       // Alkaline batteries (disposable)
       else if (AAA_BATT_CHEMISTRY == 3)
       {
-        #ifndef BATTERY_V_MEASURE_PIN
+#ifndef BATTERY_V_MEASURE_PIN
         batt_percent_value = (uint8_t)round(vcc.Read_Perc(ALK_V_MIN, ALK_V_MAX));
-        #endif
-        #ifdef BATTERY_V_MEASURE_PIN
+#endif
+#ifdef BATTERY_V_MEASURE_PIN
         float batt_voltage_measure = (float)(analog_smooth(BATTERY_V_MEASURE_PIN, MEAN_V_BATT_READS) / 1023.0) * vcc_voltage * V_BATT_CORRECTION;
-        #ifdef F_DEBUG
+#ifdef F_DEBUG
         Serial.print("Battery voltage measure: ");
         Serial.println(batt_voltage_measure);
-        #endif
+#endif
         batt_percent_value = (uint8_t)round(mapf(batt_voltage_measure, ALK_V_MIN, ALK_V_MAX, 0.0, 100.0));
-        #endif
+#endif
       }
       // Undefined battery chemistry
       else
@@ -571,13 +633,13 @@ void loop()
   }
 #endif
 
-// Set first run to false
+  // Set first run to false
   if (first_run)
   {
     first_run = false;
   }
 
-// Turn of the PWR LED (low batery)
+  // Turn of the PWR LED (low batery)
   if (!ext_power && trigger_pwr_led_update)
   {
     while (millis() < low_batt_led_on_start_time + LOW_BATTERY_BLINK_TIME)
@@ -589,37 +651,41 @@ void loop()
     trigger_pwr_led_update = false;
   }
 
-   // Set wake_up_mode to -3 if sleeping is disabled
+  // Set wake_up_mode to -3 if sleeping is disabled
 #ifdef MY_REPEATER_FEATURE
   wake_up_mode = -3;
 #endif
 
 // Smartsleep only if MY_REPEATER_FEATURE is not enabled
 #ifndef MY_REPEATER_FEATURE
-  #ifdef REED_SW_PIN
+// Turn OFF power PIN before sleeping
+#ifdef POWER_PIN
+  digitalWrite(POWER_PIN, LOW);
+#endif
+#ifdef REED_SW_PIN
   if (cycle_counter >= CYCLE_BEFORE_SLEEP)
   {
     cycle_counter = 0;
-    #ifdef F_DEBUG
+#ifdef F_DEBUG
     Serial.println("Sleeping");
-    #endif
+#endif
     wake_up_mode = smartSleep(digitalPinToInterrupt(REED_SW_PIN), CHANGE, REED_SW_SLEEP_INTERVAL);
   }
   else
   {
-    #ifdef F_DEBUG
+#ifdef F_DEBUG
     Serial.print("Finished cycle: ");
     Serial.println(cycle_counter);
-    #endif
+#endif
     cycle_counter++;
   }
-  
-  #endif
-  #ifndef REED_SW_PIN
-  #ifdef F_DEBUG
+
+#endif
+#ifndef REED_SW_PIN
+#ifdef F_DEBUG
   Serial.println("Sleeping");
-  #endif
+#endif
   wake_up_mode = smartSleep(UPDATE_INTERVAL);
-  #endif
+#endif
 #endif
 }

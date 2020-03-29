@@ -3,7 +3,6 @@
 //#define F_DEBUG
 //#define MY_DEBUG_VERBOSE_SIGNING
 
-
 // Batteries configuration
 // AAA batteries = 1, CR2032 = 2
 #define BATTERY_TYPE 2
@@ -29,12 +28,10 @@ const float CUSTOM_V_MAX = 3.3;
 const float V_BATT_CORRECTION = 1.0 / 1.0;
 #endif
 
-
 // Ext power monitor
-#ifdef EXT_PWR_SENSE_PIN 
+#ifdef EXT_PWR_SENSE_PIN
 #define ENABLE_EXT_PWR_MONITOR
 #endif
-
 
 // Power LED parameters
 #ifdef PWR_LED_PIN
@@ -43,7 +40,6 @@ const float V_BATT_CORRECTION = 1.0 / 1.0;
 // Blink time (ms)
 #define LOW_BATTERY_BLINK_TIME 300
 #endif
-
 
 // Booster configuration
 #ifdef BOOSTER_PIN
@@ -54,14 +50,12 @@ const float V_BATT_CORRECTION = 1.0 / 1.0;
 const float BoostThreshold = 2.7;
 #endif
 
-
 // Vcc read configuration
-#define ENABLE_VCC_MONITOR
+//#define ENABLE_VCC_MONITOR
 #define MEAN_VCC_READS 3
 // Measured Vcc by multimeter divided by reported Vcc
 const float VccCorrection = 1.0 / 1.0;
 const float VccTol = 0.05;
-
 
 // Reed switch configuration
 #ifdef REED_SW_PIN
@@ -69,9 +63,21 @@ const float VccTol = 0.05;
 #define DEBOUNCE_INTERVAL 5
 // sleep time interval (ms): 0 = sleep forever until status change (interrupt on pin REED_SW_PIN)
 #define REED_SW_SLEEP_INTERVAL 0
-#define CYCLE_BEFORE_SLEEP 10
+#define CYCLE_BEFORE_SLEEP 5
 #endif
 
+// Power pin parameters
+#ifdef POWER_PIN
+#define POWER_PIN_WAIT_TIME 300
+#endif
+
+// Soil Moisture Sensor parmateres
+#ifdef SOIL_MOISTURE_PIN
+#define SOIL_ANALOG_READS 3
+#define SOIL_ANALOG_TOLLERANCE 5
+#define DRY_ANALOG_VALUE 835
+#define WET_ANALOG_VALUE 340
+#endif
 
 // Heartbeat
 #define ENABLE_HEARTBEAT

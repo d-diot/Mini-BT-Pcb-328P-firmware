@@ -17,9 +17,11 @@ RX LED = A2
  Uncomment and define the MY_SIGNING_ATSHA204_PIN line if you want to use an ATSHA204 IC for signing.
 */
 
-#define REED_SW_PIN 3
+//#define REED_SW_PIN 3
 //#define BOOSTER_PIN 4
+#define POWER_PIN 5
 //#define EXT_PWR_SENSE_PIN 7
 #define PWR_LED_PIN 8
 //#define MY_SIGNING_ATSHA204_PIN 17
-//#define BATTERY_V_MEASURE_PIN 21
+#define SOIL_MOISTURE_PIN 20
+#define BATTERY_V_MEASURE_PIN 21
