@@ -59,7 +59,7 @@ Bounce debouncer = Bounce();
 #define CHILD_ID_REED_SW 4
 #endif
 #ifdef SOIL_MOISTURE_PIN
-#define CHILD_ID_SOIL_HUM 6
+#define CHILD_ID_SOIL_HUM 5
 #endif
 
 // Messages
@@ -76,7 +76,8 @@ MyMessage msgBooster(CHILD_ID_BOOSTER, V_TRIPPED);
 MyMessage msgReedSW(CHILD_ID_REED_SW, V_TRIPPED);
 #endif
 #ifdef SOIL_MOISTURE_PIN
-MyMessage msgSoilHum(CHILD_ID_SOIL_HUM, V_HUM);
+MyMessage msgSoilHum(CHILD_ID_SOIL_HUM, V_LEVEL);
+MyMessage msgSoilHumPrefix(CHILD_ID_SOIL_HUM, V_UNIT_PREFIX);
 #endif
 
 // First run
@@ -130,7 +131,7 @@ uint8_t cycle_counter = 0;
 #ifdef CHILD_ID_SOIL_HUM
 uint16_t soil_analog_read = 0;
 uint16_t soil_analog_last_read = 0;
-uint16_t nNoUpdatesSoilMoisture = 0;
+uint8_t nNoUpdatesSoilMoisture = 0;
 
 #endif
 
@@ -239,7 +240,7 @@ void presentation()
   cr2032_wait();
 #endif
 #ifdef CHILD_ID_SOIL_HUM
-  present(CHILD_ID_SOIL_HUM, S_HUM, "Soil Moisture", ack);
+  present(CHILD_ID_SOIL_HUM, S_MOISTURE, "Soil Moisture", ack);
   cr2032_wait();
 #endif
 }
@@ -434,6 +435,7 @@ void loop()
   {
     nNoUpdatesSoilMoisture = 0;
     soil_analog_last_read = soil_analog_read;
+    send(msgSoilHumPrefix.set("%"));
     send(msgSoilHum.set(int(100 - map(constrain(soil_analog_last_read, WET_ANALOG_VALUE, DRY_ANALOG_VALUE), WET_ANALOG_VALUE, DRY_ANALOG_VALUE, 0, 100))), ack);
     cr2032_wait();
 #ifdef F_DEBUG
