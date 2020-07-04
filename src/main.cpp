@@ -24,7 +24,7 @@ const char sketch_version[] = "1.0";
 static const uint32_t UPDATE_INTERVAL = 3000;
 #endif
 #ifndef F_DEBUG
-static const uint32_t UPDATE_INTERVAL = 900000;
+static const uint32_t UPDATE_INTERVAL = 10800000;
 #endif
 static const uint8_t FORCE_UPDATE_N_READS = 10;
 

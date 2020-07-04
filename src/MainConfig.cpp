@@ -80,4 +80,4 @@ const float VccTol = 0.05;
 #endif
 
 // Heartbeat
-#define ENABLE_HEARTBEAT
+//#define ENABLE_HEARTBEAT
